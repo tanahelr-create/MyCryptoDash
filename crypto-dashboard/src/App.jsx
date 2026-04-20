@@ -1,8 +1,8 @@
 import{ Routes , Route , useNavigate} from 'react-router-dom';
 import Analytiques from './navigation/analytiques';
-import Transactions from './navigation/transactions';
+import Transaction from './navigation/transactions';
 import Portefeuille from './navigation/wallet';
-
+import Parametre from './navigation/parametre';
 
 import{FaBell, FaUser, FaSearch} from 'react-icons/fa';
 import{FaArrowUp, FaArrowDown} from 'react-icons/fa';
@@ -28,8 +28,18 @@ function App() {
   const [totalUsers, setTotalUsers] = useState(12450);
   const [transactions, setTransactions] = useState(328);
 
+  const [ recherche, setRecherche] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [chargement, setChargement] = useState(false);
+
+  const [notifications, setNotifications] = useState(null);
+  const [nbNotifs, setNbNotifs]=useState(0);
+
+
   useEffect(() => {
+    {/* pour la connexion du web socket */}
     const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
     ws.onmessage = (event) => {
@@ -41,6 +51,12 @@ function App() {
       setOpenPrice(open);
       const change = ((price - open) / open* 100).toFixed(2);
       setPriceChange(change);
+      {/* pour prevenir quand il y a une forte baisse ou hausse */}
+      if(Math.abs(change) > 1){
+        setNotifications(change > 0 ? 'Hausse significative du BTC!' : 'Baisse significative du BTC!', change);
+        setNbNotifs(prev => prev + 1);
+        setTimeout(() => setNotifications(null), 5000);
+      }
 
       setMarketData((prevData) => [...prevData.slice(-29), { time, price }]);
     };
@@ -89,6 +105,27 @@ useEffect(() => {
 
 const COLORS = ['#00ff9f', '#00e5ff', '#7b2fff', '#1a1a2e'];
 
+const rechercheCrypto = async (nom) => {
+  if(!nom) return setSearchResults(null);
+  try {
+    const reponse = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${nom}&vs_currencies=usd&include_24hr_change=true`);
+    const data = await reponse.json();
+    if(data[nom]){
+      setSearchResults({ 
+        nom: nom, 
+        prix: data[nom].usd, 
+        change: data[nom].usd_24h_change?.toFixed(2) 
+      });
+    } else {
+      setSearchResults({ error: 'Crypto non trouvée' });
+    }
+  }catch (e) {
+    setSearchResults({ error: 'Erreur de recherche' });
+  }
+  setChargement(false);
+}
+
+
   return (
     <div className="tableau-root">
       {/* side bar */}
@@ -110,17 +147,33 @@ const COLORS = ['#00ff9f', '#00e5ff', '#7b2fff', '#1a1a2e'];
       </aside>
       {/* contenu principal*/}
       <div className="main">
-        <Routes>
-          <Route path="/" element ={ <>
-        <header className="topbar">
+                <header className="topbar">
           <span className="topbar-titre">Tableau de board</span>
           <div className="recherche-barre">
             <span><FaSearch /></span>
-            <input placeholder="Rechercher une crypto..." />
+            <input placeholder="Rechercher une crypto..." value={recherche} onChange={(e) => setRecherche(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && rechercheCrypto(recherche)}/>
+            {chargement && <span style={{color: '#00ff9f'}}>...</span>}
           </div>
+          
+          {searchResults && (
+            <div className="result">
+              {searchResults.error ? (
+                <span className="error">{searchResults.error}</span>
+              ) : (
+                <div className="crypto-info">
+                  <span className="search-name">{searchResults.nom}</span>
+                  <span className="search-prix">${searchResults.prix.toLocaleString}</span>
+                  <span className={searchResults.change >= 0 ? 'stat-change up' : 'stat-change down'}>
+                    {searchResults.change >= 0 ? <FaArrowUp /> : <FaArrowDown />} {searchResults.change}%
+                  </span>
+                  <span className="search-close" onClick={() => setSearchResults(null)}>X</span>
+                </div>
+              )}
+            </div>
+          )}
 
         <div className="topbar-actions">
-          <div className="icon-btn"> <FaBell /> </div>
+          <div className="icon-btn notif-btn"> <FaBell /> {nbNotifs > 0 && <span className="notif-badge">{nbNotifs}</span>} </div>
           <div className="icon-btn"> <FaUser /> </div>
           <div className="statuts-indicator">
             <span className={connected ? 'statuts-dot connected' : 'statuts-dot '}></span>
@@ -128,6 +181,9 @@ const COLORS = ['#00ff9f', '#00e5ff', '#7b2fff', '#1a1a2e'];
           </div>
         </div>
         </header>
+        <Routes>
+          <Route path="/" element ={ <>
+
         {/* contenu de ma page*/}
 
         <div className="contenu">
@@ -240,7 +296,15 @@ const COLORS = ['#00ff9f', '#00e5ff', '#7b2fff', '#1a1a2e'];
                 ))}
                     </div>
       </div>
-      <footer className='footer'>
+       </>
+      } />
+      <Route path="/analytiques" element={<Analytiques />} />
+      <Route path="/transactions" element={<Transaction />} />
+      <Route path="/portefeuille" element={<Portefeuille />} />
+      <Route path="/parametres" element={<Parametre />} />
+      
+        </Routes>
+              <footer className='footer'>
         <div className="footer-left">
           <span className="footer-logo">MyCryptoBoard</span>
           <p className="footer-desc">Votre plateforme de gestion de crypto-monnaies</p>
@@ -260,13 +324,7 @@ const COLORS = ['#00ff9f', '#00e5ff', '#7b2fff', '#1a1a2e'];
           </span>
           <p className="footer-copy">© 2026 Vanila's Group. Tableau de bord confidentiel. Tous droits réservés. Toute reproduction ou distribution non autorisée est strictement interdite.</p>
         </div>
-      </footer> </>
-      } />
-      <Route path="/analytiques" element={<Analytiques />} />
-      <Route path="/transactions" element={<Transactions />} />
-      <Route path="/portefeuille" element={<Portefeuille />} />
-      
-        </Routes>
+      </footer>
     </div>
   </div>
   );
