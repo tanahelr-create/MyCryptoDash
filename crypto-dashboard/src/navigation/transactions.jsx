@@ -1,15 +1,36 @@
 import { useState, useEffect } from "react";
 
 
+{/**pour la simulation de mes transactions */}
+
+const cryptos = ['BTC', 'ETH', 'LTC', 'SOL'];
+const types = ['Achat', 'Vente', 'Retrait'];
+const statuses = ['Terminé', 'En cours', 'Echoué'];
+
+const generateRandomTransactions = (id) => {
+  const type = types[Math.floor(Math.random() * types.length)];
+  const crypto = cryptos[Math.floor(Math.random() * cryptos.length)];
+  const montant = (Math.random() * 3).toFixed(2);
+  const valeur = `$${(Math.random() * 100000 ).toFixed(0)}`;
+  const date = new Date().toLocaleDateString('fr-FR');
+  const status = Math.random() > 0.7 ? 'Terminé' : statuses[Math.floor(Math.random() * statuses.length)];
+  
+  return { id: `#${String(id).padStart(3, '0')}`, type, crypto, montant, valeur, date, status };
+}
+
 function Transaction() {
 
-const transactions=[
-  {id: '#001', type : 'Achat', crypto: 'BTC', monatant: '0.5',valeur:'$25000', date: '2026-01-15', status: 'Terminé'},
-  {id: '#002', type : 'Vente', crypto: 'ETH', monatant: '1.2', valeur: '$15000', date: '2026-02-10', status: 'En cours'},
-  {id: '#003', type : 'Achat', crypto: 'LTC', monatant: '3.0', valeur: '$3000', date: '2026-03-05', status: 'Terminé'},
-  {id: '#004', type : 'Achat', crypto: 'SOL', monatant: '0.2', valeur: '$25000', date: '2026-01-15', status: 'Echoué'},
-]
+const [transactions, setTransactions] = useState(() => 
+  Array.from({ length: 5 }, (_, i) => generateRandomTransactions(i + 1))
+);
+const [counter, setCounter] = useState(6);
 
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCounter(prev => {const newTx = generateRandomTransactions(prev); setTransactions(old=>[newTx, ...old.slice(0, 4)]); return prev + 1 })
+  }, 5000);
+return () => clearInterval(interval);
+}, []);
   return (
     <div className="page">
       <div className="page-header">
@@ -19,7 +40,7 @@ const transactions=[
 
       <div className="panel">
         <div className="panel-titre">Historique</div>
-        <table className="transactions-table">
+        <table className="tx-table">
           <thead>
             <tr>
               <th>ID</th>
@@ -32,8 +53,8 @@ const transactions=[
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx) => (
-              <tr key={tx.id}>
+            {transactions.map((tx,i) => (
+              <tr key={`${tx.id}-${i}`}>
                 <td>{tx.id}</td>
                 <td className={tx.type  === 'Achat' ? 'tx-achat' : 'tx-vente'}>{tx.type}</td>
                 <td>{tx.crypto}</td>
