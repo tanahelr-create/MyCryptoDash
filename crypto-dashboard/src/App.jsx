@@ -17,6 +17,8 @@ function App() {
 
   const navigate = useNavigate();
 
+  const [cryptoChoisie, setCryptoChoisie] = useState('btcusdt');
+
   const [activeNav, setActiveNav] = useState('dashboard');
 
   const [connected, setConnected] = useState(false);
@@ -35,10 +37,17 @@ function App() {
   const [notifications, setNotifications] = useState(null);
   const [nbNotifs, setNbNotifs]=useState(0);
 
+  const [theme, setTheme] = useState('cyberpunk');
+
+  {/*pour le theme cyberpunk */}
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
+    setMarketData([]);
     {/* pour la connexion du web socket */}
-    const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${cryptoChoisie}@kline_1m`);
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
@@ -61,7 +70,7 @@ function App() {
       setMarketData((prevData) => [...prevData.slice(-29), { time, price }]);
     };
     return () => ws.close();
-  }, []);
+  }, [cryptoChoisie]);
 {/* fonction pour simuler les utilisateurs */}
 useEffect(() => {
   const interval = setInterval(() => {
@@ -225,9 +234,14 @@ const rechercheCrypto = async (nom) => {
             {/* pour placer mon graph à gauche*/}
             <div className="panel">
               <div className="panel-titre">Performance du marché</div>
-              <div className="chart-header">
-                <span className="chart-pair">BTC/USD</span>
+              <div className="cryptoselect">
+                <button className={cryptoChoisie === 'btcusdt' ? 'active' : ''} onClick={() => setCryptoChoisie('btcusdt')}>BTC/USD</button>
+                <button className={cryptoChoisie === 'ethusdt' ? 'active' : ''} onClick={() => setCryptoChoisie('ethusdt')}>ETH/USD</button>
+                <button className={cryptoChoisie === 'solusdt' ? 'active' : ''} onClick={() => setCryptoChoisie('solusdt')}>SOL/USD</button>
                 <span className="price-display">${currentPrice.toFixed(0)}<span className="price-change"> <FaArrowUp /> live</span></span>
+              </div>
+              <div className="chart-header">
+                
               </div>
 
               <ResponsiveContainer width="100%" height={220}>
@@ -301,7 +315,7 @@ const rechercheCrypto = async (nom) => {
       <Route path="/analytiques" element={<Analytiques />} />
       <Route path="/transactions" element={<Transaction />} />
       <Route path="/portefeuille" element={<Portefeuille />} />
-      <Route path="/parametres" element={<Parametre />} />
+      <Route path="/parametres" element={<Parametre theme={theme}setTheme={setTheme} />} />
       
         </Routes>
               <footer className='footer'>

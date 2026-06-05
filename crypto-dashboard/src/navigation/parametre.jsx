@@ -1,9 +1,9 @@
 import { useState } from "react";
 
 
-function Parametres() {
+function Parametres({theme, setTheme}) {
 
-  const [theme, setTheme] = useState('cyberpunk');
+  
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState('fr');
   return (
@@ -21,7 +21,7 @@ function Parametres() {
             <span className="setting-desc">Couleur du Dashboard</span>
           </div>
           <div className="setting-options">
-            {['cyberpunk', 'dark', 'violet'].map((t) => (
+            {['cyberpunk', 'blue', 'marron'].map((t) => (
               <button
                 key={t}
                 className={`theme-btn ${theme === t ? 'active' : ''}`}
